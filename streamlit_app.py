@@ -262,7 +262,7 @@ if prompt := st.chat_input("Type a message..."):
                 + "".join(final_output)
             )
 
-            response_placeholder.markdown(display_content, unsafe_allow_html=True)
+            response_placeholder.markdown(st.latex(display_content), unsafe_allow_html=True)
             st.session_state.thinking.clear()
 
     st.session_state.messages.append({"role": "assistant", "content": display_content})
