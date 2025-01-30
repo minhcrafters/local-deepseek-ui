@@ -254,7 +254,7 @@ if prompt := st.chat_input("Type a message..."):
                     f"""<div class="thinking" data-open="false">
                     <details>
                         <summary>🤔 Thinking Process</summary>
-                        <div class="thinking-content">{t['content']}</div>
+                        <div class="thinking-content">{st.session_state.thinking[t]['content']}</div>
                     </details>
                 </div>"""
                     for t in thinking_order
