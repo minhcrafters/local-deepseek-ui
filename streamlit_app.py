@@ -40,7 +40,8 @@ def _process_chunk(line: dict):
     try:
         # Handle OpenAI format
         if "choices" in line:
-            content = line.get("choices", [{}])[0].get("delta", {}).get("content")
+            content = line.get("choices", [{}])[0].get(
+                "delta", {}).get("content")
             return content if content else None
         # Handle Ollama format
         else:
@@ -71,7 +72,7 @@ class ThinkParser:
                 else:
                     if start > 0:
                         parts.append(("text", self.buffer[:start]))
-                    self.buffer = self.buffer[start + 7 :]
+                    self.buffer = self.buffer[start + 7:]
                     self.in_think = True
                     self.open_think_id = f"think-{len(parts)}"
                     parts.append(("think_open", self.open_think_id))
@@ -79,19 +80,58 @@ class ThinkParser:
                 end = self.buffer.find("</think>")
                 if end == -1:
                     content = self.buffer
-                    parts.append(("think_update", (self.open_think_id, content)))
+                    parts.append(
+                        ("think_update", (self.open_think_id, content)))
                     self.buffer = ""
                     break
                 else:
                     content = self.buffer[:end]
-                    parts.append(("think_update", (self.open_think_id, content)))
+                    parts.append(
+                        ("think_update", (self.open_think_id, content)))
                     parts.append(("think_close", self.open_think_id))
-                    self.buffer = self.buffer[end + 8 :]
+                    self.buffer = self.buffer[end + 8:]
                     self.in_think = False
                     self.open_think_id = None
         return parts
 
+
 st.set_page_config(page_title="DeepSeek-R1 Demo")
+
+with st.sidebar:
+    st.header("Model Settings")
+    selected_model = st.selectbox(
+        "Choose Model",
+        ["deepseek-r1:8b", "llama3.1:70b", "mistral:7b", "phi3:mini"],
+        index=0
+    )
+    max_tokens = st.slider("Max Tokens", 100, 32767, 4096)
+    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.1)
+
+    if st.button("Verify/Pull Model"):
+        with st.status(f"Checking {selected_model}..."):
+            try:
+                # Check if model exists
+                check_response = requests.post(
+                    "https://nearby-good-parakeet.ngrok-free.app/api/show",
+                    headers={"Authorization": "Bearer test"},
+                    json={"name": selected_model}
+                )
+
+                if check_response.status_code != 200:
+                    st.info(f"Pulling {selected_model}...")
+                    pull_response = requests.post(
+                        "https://nearby-good-parakeet.ngrok-free.app/api/pull",
+                        headers={"Authorization": "Bearer test"},
+                        json={"name": selected_model, "stream": False}
+                    )
+                    if pull_response.status_code == 200:
+                        st.success(f"Successfully pulled {selected_model}")
+                    else:
+                        st.error(f"Failed to pull model: {pull_response.text}")
+                else:
+                    st.success("Model already available")
+            except Exception as e:
+                st.error(f"Error communicating with Ollama: {str(e)}")
 
 st.markdown(
     """
@@ -164,105 +204,113 @@ if prompt := st.chat_input("Type a message..."):
         parser = ThinkParser()
         thinking_order = deque()
 
-        with requests.post(
-            "https://nearby-good-parakeet.ngrok-free.app/api/chat",
-            headers={
-                "Authorization": "Bearer test",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "deepseek-r1:8b",
-                "temperature": 0.6,
-                "stream": True,
-                "messages": [
-                    m for m in st.session_state.messages if not m.get("is_system")
-                ],
-            },
-            stream=True,
-        ) as response:
+        try:
+            with requests.post(
+                "https://nearby-good-parakeet.ngrok-free.app/api/chat",
+                headers={
+                    "Authorization": "Bearer test",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": selected_model,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "stream": True,
+                    "messages": [
+                        m for m in st.session_state.messages if not m.get("is_system")
+                    ],
+                },
+                stream=True,
+            ) as response:
 
-            for line in response.iter_lines():
-                if line:
-                    cleaned = _clean_raw_bytes(line)
-                    chunk = _process_chunk(cleaned)
+                for line in response.iter_lines():
+                    if line:
+                        cleaned = _clean_raw_bytes(line)
+                        chunk = _process_chunk(cleaned)
 
-                    if chunk:
-                        parts = parser.process(chunk)
-                        update_needed = False
+                        if chunk:
+                            parts = parser.process(chunk)
+                            update_needed = False
 
-                        for part_type, content in parts:
-                            if part_type == "text":
-                                final_output.append(content)
-                                update_needed = True
-                            elif part_type == "think_open":
-                                thinking_id = content
-                                st.session_state.thinking[thinking_id] = {
-                                    "content": "",
-                                    "open": True,
-                                }
-                                thinking_order.append(thinking_id)
-                                update_needed = True
-                            elif part_type == "think_update":
-                                thinking_id, delta = content
-                                st.session_state.thinking[thinking_id][
-                                    "content"
-                                ] += delta
-                                update_needed = True
-                            elif part_type == "think_close":
-                                thinking_id = content
-                                st.session_state.thinking[thinking_id]["open"] = False
-                                update_needed = True
+                            for part_type, content in parts:
+                                if part_type == "text":
+                                    final_output.append(content)
+                                    update_needed = True
+                                elif part_type == "think_open":
+                                    thinking_id = content
+                                    st.session_state.thinking[thinking_id] = {
+                                        "content": "",
+                                        "open": True,
+                                    }
+                                    thinking_order.append(thinking_id)
+                                    update_needed = True
+                                elif part_type == "think_update":
+                                    thinking_id, delta = content
+                                    st.session_state.thinking[thinking_id][
+                                        "content"
+                                    ] += delta
+                                    update_needed = True
+                                elif part_type == "think_close":
+                                    thinking_id = content
+                                    st.session_state.thinking[thinking_id]["open"] = False
+                                    update_needed = True
 
-                        if update_needed:
-                            # Build thinking sections HTML
-                            thinking_html = []
-                            for tid in thinking_order:
-                                think = st.session_state.thinking[tid]
-                                content = think["content"]
-                                if think["open"]:
-                                    content += '<span class="streaming-cursor"></span>'
+                            if update_needed:
+                                # Build thinking sections HTML
+                                thinking_html = []
+                                for tid in thinking_order:
+                                    think = st.session_state.thinking[tid]
+                                    content = think["content"]
+                                    if think["open"]:
+                                        content += '<span class="streaming-cursor"></span>'
 
-                                thinking_html.append(
-                                    f"""
-                                <div class="thinking" data-open="{str(think['open']).lower()}">
-                                    <details {'open' if think['open'] else ''}>
-                                        <summary>🤔 Thinking Process</summary>
-                                        <div class="thinking-content">{content}</div>
-                                    </details>
-                                </div>
-                                """
+                                    thinking_html.append(
+                                        f"""
+                                    <div class="thinking" data-open="{str(think['open']).lower()}">
+                                        <details {'open' if think['open'] else ''}>
+                                            <summary>🤔 Thinking Process</summary>
+                                            <div class="thinking-content">{content}</div>
+                                        </details>
+                                    </div>
+                                    """
+                                    )
+
+                                # Build final display
+                                display_content = "\n".join(thinking_html) + "".join(
+                                    final_output
+                                )
+                                if any(
+                                    t["open"] for t in st.session_state.thinking.values()
+                                ):
+                                    display_content += (
+                                        '<span class="streaming-cursor"></span>'
+                                    )
+
+                                response_placeholder.markdown(
+                                    display_content, unsafe_allow_html=True
                                 )
 
-                            # Build final display
-                            display_content = "\n".join(thinking_html) + "".join(
-                                final_output
-                            )
-                            if any(
-                                t["open"] for t in st.session_state.thinking.values()
-                            ):
-                                display_content += (
-                                    '<span class="streaming-cursor"></span>'
-                                )
-
-                            response_placeholder.markdown(
-                                display_content, unsafe_allow_html=True
-                            )
-
-            # Final update to remove any remaining cursors
-            display_content = (
-                "\n".join(
-                    f"""<div class="thinking" data-open="false">
-                    <details>
-                        <summary>🤔 Thinking Process</summary>
-                        <div class="thinking-content">{st.session_state.thinking[t]['content']}</div>
-                    </details>
-                </div>"""
-                    for t in thinking_order
+                # Final update to remove any remaining cursors
+                display_content = (
+                    "\n".join(
+                        f"""<div class="thinking" data-open="false">
+                        <details>
+                            <summary>🤔 Thinking Process</summary>
+                            <div class="thinking-content">{st.session_state.thinking[t]['content']}</div>
+                        </details>
+                    </div>"""
+                        for t in thinking_order
+                    )
+                    + "".join(final_output)
                 )
-                + "".join(final_output)
-            )
 
-            response_placeholder.markdown(display_content, unsafe_allow_html=True)
-            st.session_state.thinking.clear()
+                response_placeholder.markdown(
+                    display_content, unsafe_allow_html=True)
+                st.session_state.thinking.clear()
+        except requests.exceptions.RequestException as e:
+            st.error(f"API Error: {str(e)}")
+        except json.JSONDecodeError as e:
+            st.error(f"Response parsing error: {str(e)}")
 
-    st.session_state.messages.append({"role": "assistant", "content": display_content})
+    st.session_state.messages.append(
+        {"role": "assistant", "content": display_content})
