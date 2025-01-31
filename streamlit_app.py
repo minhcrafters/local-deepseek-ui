@@ -104,13 +104,14 @@ with st.sidebar:
         ["deepseek-r1:8b", "llama3.1:70b", "mistral:7b", "phi3:mini", "Other..."],
         index=0
     )
-    max_tokens = st.slider("Max Tokens", 100, 32767, 4096)
-    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
 
     if selected_model == "Other...":
         final_model = st.text_input("Custom Model (has to be available within Ollama's list of models)")
     else:
         final_model = selected_model
+
+    max_tokens = st.slider("Max Tokens", 128, 32767, 4096)
+    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
 
     if st.button("Verify/Pull Model"):
         with st.status(f"Checking {final_model}..."):
