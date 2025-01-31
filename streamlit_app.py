@@ -105,7 +105,7 @@ with st.sidebar:
         index=0
     )
     max_tokens = st.slider("Max Tokens", 100, 32767, 4096)
-    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.1)
+    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
 
     if selected_model == "Other...":
         final_model = st.text_input("Custom Model (has to be available within Ollama's list of models)")
