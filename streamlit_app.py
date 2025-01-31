@@ -218,7 +218,7 @@ if prompt := st.chat_input("Type a message..."):
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": selected_model,
+                    "model": final_model,
                     "temperature": temperature,
                     "max_tokens": max_tokens,
                     "stream": True,
