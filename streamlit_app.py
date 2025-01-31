@@ -110,9 +110,6 @@ with st.sidebar:
     else:
         final_model = selected_model
 
-    max_tokens = st.slider("Max Tokens", 128, 32767, 4096)
-    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
-
     if st.button("Verify/Pull Model"):
         with st.status(f"Checking {final_model}..."):
             try:
@@ -138,6 +135,9 @@ with st.sidebar:
                     st.success("Model already available")
             except Exception as e:
                 st.error(f"Error communicating with Ollama: {str(e)}")
+
+    max_tokens = st.slider("Max Tokens", 128, 32767, 4096)
+    temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
 
 st.markdown(
     """
@@ -228,7 +228,6 @@ if prompt := st.chat_input("Type a message..."):
                 },
                 stream=True,
             ) as response:
-
                 for line in response.iter_lines():
                     if line:
                         cleaned = _clean_raw_bytes(line)
