@@ -3,6 +3,7 @@ import requests
 import json
 from collections import deque
 
+API_BASE = st.secrets["API_BASE"]
 
 def _clean_raw_bytes(line: bytes):
     """
@@ -115,7 +116,7 @@ with st.sidebar:
             try:
                 # Check if model exists
                 check_response = requests.post(
-                    "https://nearby-good-parakeet.ngrok-free.app/api/show",
+                    f"{API_BASE}/api/show",
                     headers={"Authorization": "Bearer test"},
                     json={"name": final_model}
                 )
@@ -123,7 +124,7 @@ with st.sidebar:
                 if check_response.status_code != 200:
                     st.info(f"Pulling {final_model}...")
                     pull_response = requests.post(
-                        "https://nearby-good-parakeet.ngrok-free.app/api/pull",
+                        f"{API_BASE}/api/pull",
                         headers={"Authorization": "Bearer test"},
                         json={"name": final_model, "stream": False}
                     )
@@ -212,7 +213,7 @@ if prompt := st.chat_input("Type a message..."):
 
         try:
             with requests.post(
-                "https://nearby-good-parakeet.ngrok-free.app/api/chat",
+                f"{API_BASE}/api/chat",
                 headers={
                     "Authorization": "Bearer test",
                     "Content-Type": "application/json",
