@@ -117,7 +117,7 @@ with st.sidebar:
         final_model = f"{selected_model}:{selected_params}"
 
     if st.button("Verify/Pull Model"):
-        with st.status(f"Checking {final_model}..."):
+        with st.status(f"Checking {final_model}...") as status:
             try:
                 # Check if model exists
                 check_response = requests.post(
@@ -127,20 +127,20 @@ with st.sidebar:
                 )
 
                 if check_response.status_code != 200:
-                    st.info(f"Pulling {final_model}...")
+                    status.update(label=f"Pulling {final_model}...", state="running")
                     pull_response = requests.post(
                         f"{API_BASE}/api/pull",
                         headers={"Authorization": "Bearer test"},
                         json={"name": final_model, "stream": False}
                     )
                     if pull_response.status_code == 200:
-                        st.success(f"Successfully pulled {final_model}")
+                        status.update(f"Successfully pulled {final_model}", state="success")
                     else:
-                        st.error(f"Failed to pull model: {pull_response.text}")
+                        status.update(f"Failed to pull model: {pull_response.text}", state="error")
                 else:
-                    st.success("Model already available")
+                    status.update("Model already available", state="error")
             except Exception as e:
-                st.error(f"Error communicating with Ollama: {str(e)}")
+                status.update(f"Error communicating with Ollama: {str(e)}", state="error")
 
     max_tokens = st.slider("Max Tokens", 128, 32767, 4096)
     temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
