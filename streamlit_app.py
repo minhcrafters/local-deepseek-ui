@@ -134,13 +134,13 @@ with st.sidebar:
                         json={"name": final_model, "stream": False}
                     )
                     if pull_response.status_code == 200:
-                        status.update(f"Successfully pulled {final_model}", state="success")
+                        status.update(label=f"Successfully pulled {final_model}", state="complete")
                     else:
-                        status.update(f"Failed to pull model: {pull_response.text}", state="error")
+                        status.update(label=f"Failed to pull model: {pull_response.text}", state="error")
                 else:
-                    status.update("Model already available", state="error")
+                    status.update(label="Model already available", state="error")
             except Exception as e:
-                status.update(f"Error communicating with Ollama: {str(e)}", state="error")
+                status.update(label=f"Error communicating with Ollama: {str(e)}", state="error")
 
     max_tokens = st.slider("Max Tokens", 128, 32767, 4096)
     temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.05)
