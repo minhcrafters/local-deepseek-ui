@@ -111,7 +111,7 @@ with st.sidebar:
     else:
         selected_params = st.selectbox(
             "Choose Params Size",
-            ["1.5b", "7b", "8b", "14b", "32b", "671b"],
+            ["1.5b", "7b", "8b", "14b", "32b"],
             index=0
         )
         final_model = f"{selected_model}:{selected_params}"
