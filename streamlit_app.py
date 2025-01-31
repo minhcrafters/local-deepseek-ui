@@ -102,14 +102,19 @@ with st.sidebar:
     st.header("Model Settings")
     selected_model = st.selectbox(
         "Choose Model",
-        ["deepseek-r1:8b", "llama3.1:70b", "mistral:7b", "phi3:mini", "Other..."],
+        ["deepseek-r1", "Other..."],
         index=0
     )
 
     if selected_model == "Other...":
         final_model = st.text_input("Custom Model (has to be available within Ollama's list of models)")
     else:
-        final_model = selected_model
+        selected_params = st.selectbox(
+            "Choose Params Size",
+            ["1.5b", "7b", "8b", "14b", "32b", "671b"],
+            index=0
+        )
+        final_model = f"{selected_model}:{selected_params}"
 
     if st.button("Verify/Pull Model"):
         with st.status(f"Checking {final_model}..."):
