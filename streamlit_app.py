@@ -101,31 +101,36 @@ with st.sidebar:
     st.header("Model Settings")
     selected_model = st.selectbox(
         "Choose Model",
-        ["deepseek-r1:8b", "llama3.1:70b", "mistral:7b", "phi3:mini"],
+        ["deepseek-r1:8b", "llama3.1:70b", "mistral:7b", "phi3:mini", "Other..."],
         index=0
     )
     max_tokens = st.slider("Max Tokens", 100, 32767, 4096)
     temperature = st.slider("Temperature", 0.0, 2.0, 0.6, step=0.1)
 
+    if selected_model == "Other...":
+        final_model = st.text_input("Custom Model (has to be available within Ollama's list of models)")
+    else:
+        final_model = selected_model
+
     if st.button("Verify/Pull Model"):
-        with st.status(f"Checking {selected_model}..."):
+        with st.status(f"Checking {final_model}..."):
             try:
                 # Check if model exists
                 check_response = requests.post(
                     "https://nearby-good-parakeet.ngrok-free.app/api/show",
                     headers={"Authorization": "Bearer test"},
-                    json={"name": selected_model}
+                    json={"name": final_model}
                 )
 
                 if check_response.status_code != 200:
-                    st.info(f"Pulling {selected_model}...")
+                    st.info(f"Pulling {final_model}...")
                     pull_response = requests.post(
                         "https://nearby-good-parakeet.ngrok-free.app/api/pull",
                         headers={"Authorization": "Bearer test"},
-                        json={"name": selected_model, "stream": False}
+                        json={"name": final_model, "stream": False}
                     )
                     if pull_response.status_code == 200:
-                        st.success(f"Successfully pulled {selected_model}")
+                        st.success(f"Successfully pulled {final_model}")
                     else:
                         st.error(f"Failed to pull model: {pull_response.text}")
                 else:
